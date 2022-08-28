@@ -1,0 +1,27 @@
+pipeline {
+    
+    agent any
+    triggers{
+        cron('*/15 * * * *')
+    }
+    stages {
+        stage('run-api-tests') {
+            steps {
+                pararell{
+                    stage('run-api-tests-dev'){
+                        steps{
+                            sh "docker run --rm --name api_dev_tests --entrypoint=cucumber edijs/ubuntu_ruby_executor:latest PLATFORM=DEV"
+                        }
+                    }
+                    stage('run-api-tests-prod'){
+                        steps{
+                            sh "docker run --rm --name api_prod_tests --entrypoint=cucumber edijs/ubuntu_ruby_executor:latest PLATFORM=PRD"
+                        }
+                    }
+                }
+                sh -c "docker build -t edijs/ubuntu_ruby_base:latest . -f Dockerfile_base"
+                build job: "Docker_Test_Executor"
+            }
+        }
+    }
+}
