@@ -1,27 +1,26 @@
 pipeline {
-    
     agent any
-    triggers{
+    triggers {
         cron('*/15 * * * *')
+    }
+    parameters {
+        string(name: 'TAG', defaultValue: '@smoke', description: 'Tag for test config')
     }
     stages {
         stage('run-api-tests') {
-            steps {
-                pararell{
-                    stage('run-api-tests-dev'){
-                        steps{
-                            sh "docker run --rm --name api_dev_tests --entrypoint=cucumber edijs/ubuntu_ruby_executor:latest PLATFORM=DEV"
-                        }
-                    }
-                    stage('run-api-tests-prod'){
-                        steps{
-                            sh "docker run --rm --name api_prod_tests --entrypoint=cucumber edijs/ubuntu_ruby_executor:latest PLATFORM=PRD"
-                        }
+            parallel{
+                stage('run-api-tests-dev'){
+                    steps{
+                        sh "docker run --network=host --rm --name api_dev_tests --entrypoint=cucumber edijs/ubuntu_ruby_executor:latest PLATFORM=DEV --tags=${params.TAG}"
                     }
                 }
-                sh -c "docker build -t edijs/ubuntu_ruby_base:latest . -f Dockerfile_base"
-                build job: "Docker_Test_Executor"
+                stage('run-api-tests-prd'){
+                    steps{
+                        sh "docker run --network=host --rm --name api_prd_tests --entrypoint=cucumber edijs/ubuntu_ruby_executor:latest PLATFORM=PRD --tags=${params.TAG}"
+                    }
+                }
             }
+
         }
     }
 }
